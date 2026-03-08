@@ -232,6 +232,7 @@ const JogoPage: React.FC = () => {
             setJogoEncerrado(true);
         } else {
             setRodadaAtualIndex(proximoIndex);
+            // ALTERADO: Removemos "Rodada X." do texto da mensagem, pois já existe o título fixo
             mostrarFeedback(`Clique em DICAS!`, 'neutro');
         }
     };
@@ -530,6 +531,5 @@ const JogoPage: React.FC = () => {
         </>
     );
 };
-
 
 export default JogoPage;

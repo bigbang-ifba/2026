@@ -135,8 +135,40 @@ describe('Página AdminUsuarioForm', () => {
     });
 
     // =========================================================================
-    // 2. HAPPY PATH (INTERAÇÕES E SUCESSO)
+    // 2. HAPPY PATH E INTERAÇÕES NA UI
     // =========================================================================
+
+    it('Deve navegar para cancelar ao clicar no botão "Cancelar"', () => {
+        renderComponent();
+        fireEvent.click(screen.getByText('Cancelar'));
+        expect(mockedNavigate).toHaveBeenCalledWith('/admin/usuarios');
+    });
+
+    it('Deve alterar as permissões ao clicar nos checkboxes e enviar no payload', async () => {
+        mockedParams.id = undefined;
+        mockApi.post.mockResolvedValueOnce({ data: { success: true } });
+
+        renderComponent();
+
+        fireEvent.change(screen.getByPlaceholderText('Ex: João da Silva'), { target: { value: 'User Perms' } });
+        fireEvent.change(screen.getByPlaceholderText('usuario@bigbang.com'), { target: { value: 'perms@t.com' } });
+        fireEvent.change(screen.getByPlaceholderText('******'), { target: { value: '123' } });
+
+        // Clica nos 3 checkboxes para ativá-los
+        fireEvent.click(screen.getByLabelText(/Pode Excluir Elementos/i));
+        fireEvent.click(screen.getByLabelText(/Pode Excluir Participantes/i));
+        fireEvent.click(screen.getByLabelText(/Pode Gerenciar Usuários/i));
+
+        fireEvent.click(screen.getByText('Salvar Alterações'));
+
+        await waitFor(() => {
+            expect(mockApi.post).toHaveBeenCalledWith('/usuarios', expect.objectContaining({
+                podeExcluirElementos: true,
+                podeExcluirParticipantes: true,
+                podeGerenciarUsuarios: true
+            }), expect.anything());
+        });
+    });
 
     it('Deve gerar uma senha aleatória ao clicar em "Gerar"', async () => {
         renderComponent();
@@ -220,7 +252,7 @@ describe('Página AdminUsuarioForm', () => {
     });
 
     // =========================================================================
-    // 3. UNHAPPY PATH (VALIDAÇÕES E ERROS)
+    // 3. UNHAPPY PATH E VALIDAÇÕES
     // =========================================================================
 
     it('Deve validar campos obrigatórios (Nome/Email) antes de enviar', () => {
@@ -258,9 +290,8 @@ describe('Página AdminUsuarioForm', () => {
         });
     });
 
-    it('Deve exibir erro vindo da API ao falhar no salvamento', async () => {
+    it('Deve exibir erro customizado vindo da API ao falhar no salvamento', async () => {
         mockedParams.id = undefined;
-        // Simula erro com estrutura do Axios
         mockApi.post.mockRejectedValueOnce({
             response: {
                 data: { error: 'E-mail já cadastrado!' }
@@ -277,6 +308,24 @@ describe('Página AdminUsuarioForm', () => {
 
         await waitFor(() => {
             expect(toast.error).toHaveBeenCalledWith('E-mail já cadastrado!');
+        });
+    });
+
+    it('Deve exibir erro genérico ao falhar no salvamento (erro de rede/sem response.data)', async () => {
+        mockedParams.id = undefined;
+        // Simula erro de rede sem o objeto response do axios
+        mockApi.post.mockRejectedValueOnce(new Error('Network Error'));
+
+        renderComponent();
+
+        fireEvent.change(screen.getByPlaceholderText('Ex: João da Silva'), { target: { value: 'Teste' } });
+        fireEvent.change(screen.getByPlaceholderText('usuario@bigbang.com'), { target: { value: 'teste@t.com' } });
+        fireEvent.change(screen.getByPlaceholderText('******'), { target: { value: '123' } });
+
+        fireEvent.click(screen.getByText('Salvar Alterações'));
+
+        await waitFor(() => {
+            expect(toast.error).toHaveBeenCalledWith('Erro ao salvar.');
         });
     });
 
