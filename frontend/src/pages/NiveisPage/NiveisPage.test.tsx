@@ -78,7 +78,6 @@ describe('Página NiveisPage', () => {
 
     it('Deve ter os links corretos para a seleção de perfil', async () => {
         renderPage();
-        // CORRIGIDO: getByTitle para getByAltText
         await waitFor(() => screen.getByAltText('INICIANTE'));
 
         const linkIniciante = screen.getByAltText('INICIANTE').closest('a');
@@ -101,7 +100,6 @@ describe('Página NiveisPage', () => {
 
     it('Deve ter um botão de voltar para o menu', async () => {
         renderPage();
-        // CORRIGIDO: getByTitle para getByAltText e ajustado o nome buscado
         await waitFor(() => screen.getByAltText('INICIANTE'));
 
         const btnVoltar = screen.getByTitle('Voltar'); // O botão voltar de fato tem a tag title="Voltar"
@@ -126,7 +124,6 @@ describe('Página NiveisPage', () => {
         renderPage();
 
         await waitFor(() => {
-            // CORRIGIDO: getByTitle e queryByTitle para getByAltText / queryByAltText
             expect(screen.getByAltText('INICIANTE')).toBeInTheDocument();
             expect(screen.queryByAltText(/ALIENIGENA/i)).not.toBeInTheDocument();
         });

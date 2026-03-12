@@ -210,14 +210,11 @@ describe('Página AdminElementoForm', () => {
     it('Deve ocultar o campo de Cerne de Gás Nobre ao mudar nível para 2 ou 3', async () => {
         renderComponent();
 
-        // O nível padrão é 1, então "Cerne do Gás Nobre" deve existir
         expect(screen.getByText('Cerne do Gás Nobre')).toBeInTheDocument();
 
-        // Troca para o nível 2
         const select = screen.getByRole('combobox');
         fireEvent.change(select, { target: { value: '2' } });
 
-        // Agora o campo deve sumir
         expect(screen.queryByText('Cerne do Gás Nobre')).not.toBeInTheDocument();
     });
 

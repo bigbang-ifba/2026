@@ -251,14 +251,13 @@ const AdminElementoForm: React.FC = () => {
                         <h5 className="text-info mb-3">Dicas (3 Obrigatórias)</h5>
                         {[0, 1, 2].map(idx => (
                             <div className="mb-3" key={idx}>
-                                {/* ALTERAÇÃO PRINCIPAL AQUI: Troca de input para textarea */}
                                 <textarea
                                     className="form-control custom-large-input"
                                     placeholder={`Dica ${idx + 1}`}
                                     value={dicas[idx]}
                                     onChange={(e) => handleDicaChange(idx, e.target.value)}
-                                    rows={2} // Define que terá a altura inicial de 2 linhas
-                                    style={{ resize: 'vertical' }} // Permite que o usuário estique a caixa para baixo se quiser
+                                    rows={2}
+                                    style={{ resize: 'vertical' }}
                                     maxLength={150}
                                 />
                             </div>

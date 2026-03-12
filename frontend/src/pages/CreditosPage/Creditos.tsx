@@ -24,7 +24,7 @@ const Creditos: React.FC = () => {
         {
             nome: "Paulo Quiroz R. Junior",
             funcao: "Orientando",
-            descricao: "Desenvolvedor / Designer (2025)",
+            descricao: "Desenvolvedor / Designer (2026)",
             lattes: "http://lattes.cnpq.br/1139186294852704"
         },
         {
@@ -97,8 +97,8 @@ const Creditos: React.FC = () => {
             </div>
 
             <div className="creditos-scroll-area">
-                {/* --- SEÇÃO 2025 --- */}
-                <h2 className="titulo-secao">Equipe 2025 (Refatoração & Tecnologias Web)</h2>
+                {/* --- SEÇÃO 2026 --- */}
+                <h2 className="titulo-secao">Equipe 2026 (Refatoração & Tecnologias Web)</h2>
                 <div className="grid-membros">
                     {equipe2025.map(renderMembro)}
                 </div>

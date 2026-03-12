@@ -30,7 +30,7 @@ const AdminElementosPage: React.FC = () => {
 
     // Estados de Filtro
     const [busca, setBusca] = useState('');
-    const [nivelFiltro, setNivelFiltro] = useState('TODOS'); // <--- NOVO
+    const [nivelFiltro, setNivelFiltro] = useState('TODOS');
 
     const [elementos, setElementos] = useState<Elemento[]>([]);
     const [loading, setLoading] = useState(true);
