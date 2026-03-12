@@ -97,7 +97,7 @@ const Creditos: React.FC = () => {
             </div>
 
             <div className="creditos-scroll-area">
-                {/* --- SEÇÃO 2025 --- */}
+                {/* --- SEÇÃO 2026 --- */}
                 <h2 className="titulo-secao">Equipe 2026 (Refatoração & Tecnologias Web)</h2>
                 <div className="grid-membros">
                     {equipe2025.map(renderMembro)}
@@ -144,6 +144,5 @@ const Creditos: React.FC = () => {
         </div>
     );
 };
-
 
 export default Creditos;

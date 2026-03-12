@@ -307,5 +307,4 @@ const AdminElementosPage: React.FC = () => {
     );
 };
 
-
 export default AdminElementosPage;

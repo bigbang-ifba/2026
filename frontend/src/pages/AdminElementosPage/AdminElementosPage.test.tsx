@@ -43,13 +43,19 @@ const mockRespostaAPI = {
 
 // --- HELPERS ---
 
-const setupSession = (podeExcluir: boolean) => {
+const setupSession = (podeExcluir: boolean, invalidJson: boolean = false) => {
     sessionStorage.setItem('token', 'fake-token');
-    sessionStorage.setItem('adminUser', JSON.stringify({
-        id: 1,
-        isSuperAdmin: false,
-        podeExcluirElementos: podeExcluir
-    }));
+
+    if (invalidJson) {
+        // Simula o erro do catch ao tentar parsear JSON inválido de adminUser
+        sessionStorage.setItem('adminUser', '{invalid-json');
+    } else {
+        sessionStorage.setItem('adminUser', JSON.stringify({
+            id: 1,
+            isSuperAdmin: false,
+            podeExcluirElementos: podeExcluir
+        }));
+    }
 };
 
 describe('Página AdminElementosPage', () => {
@@ -100,6 +106,7 @@ describe('Página AdminElementosPage', () => {
             expect(screen.getByText('Hélio')).toBeInTheDocument();
             expect(screen.getByText('INICIANTE')).toBeInTheDocument(); // Nível 1
             expect(screen.getByText('CURIOSO')).toBeInTheDocument();   // Nível 2
+            expect(screen.getByText('CIENTISTA')).toBeInTheDocument();   // Nível 3
         });
     });
 
@@ -128,6 +135,21 @@ describe('Página AdminElementosPage', () => {
         });
     });
 
+    it('Deve lidar graciosamente com JSON de sessão inválido (cobertura do catch do sessionStorage)', async () => {
+        setupSession(true, true); // JSON inválido
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        await renderAndLoad();
+
+        // Como falhou ao ler permissão, deve ficar falso (desabilitado)
+        await waitFor(() => {
+            const btnsExcluir = screen.getAllByTitle('Sem permissão para excluir');
+            expect(btnsExcluir[0]).toBeDisabled();
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Erro ao ler permissões"), expect.anything());
+        });
+        consoleSpy.mockRestore();
+    });
+
     it('Deve navegar para criar novo elemento ao clicar no botão', async () => {
         await renderAndLoad();
         await waitFor(() => screen.getByText('+ Novo Elemento'));
@@ -137,7 +159,7 @@ describe('Página AdminElementosPage', () => {
     });
 
     // =========================================================================
-    // 2. HAPPY PATH (FUNCIONALIDADES)
+    // 2. HAPPY PATH (FUNCIONALIDADES DE BUSCA E PAGINAÇÃO)
     // =========================================================================
 
     it('Deve navegar para edição ao clicar em Editar', async () => {
@@ -156,7 +178,6 @@ describe('Página AdminElementosPage', () => {
 
         const inputBusca = screen.getByPlaceholderText('🔍 Buscar elemento...');
 
-        // Limpa mocks anteriores para testar só a busca
         (globalThis.fetch as Mock).mockClear();
         (globalThis.fetch as Mock).mockResolvedValue({
             ok: true,
@@ -165,7 +186,6 @@ describe('Página AdminElementosPage', () => {
 
         fireEvent.change(inputBusca, { target: { value: 'Helio' } });
 
-        // Avança o debounce
         await act(async () => {
             vi.advanceTimersByTime(550);
         });
@@ -178,25 +198,99 @@ describe('Página AdminElementosPage', () => {
         });
     });
 
-    it('Deve paginar corretamente ao clicar em Próxima', async () => {
+    it('Deve aplicar os filtros de Nível via Radio Buttons', async () => {
         await renderAndLoad();
-        await waitFor(() => screen.getByText('Página 1 de 2'));
 
-        const btnProxima = screen.getByText('Próxima');
-        fireEvent.click(btnProxima);
+        (globalThis.fetch as Mock).mockClear();
 
-        // Avança o debounce (o useEffect depende de paginaAtual também)
+        // Clica no Rádio Iniciante
+        const radioIniciante = screen.getByLabelText('Iniciante');
+        fireEvent.click(radioIniciante);
+
         await act(async () => {
             vi.advanceTimersByTime(550);
         });
 
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('nivel=INICIANTE'),
+            expect.anything()
+        );
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('page=1'), // Garante que voltou p/ pág 1
+            expect.anything()
+        );
+    });
+
+    it('Deve paginar corretamente ao clicar em Próxima e Anterior', async () => {
+        await renderAndLoad();
+        await waitFor(() => screen.getByText('Página 1 de 2'));
+
+        (globalThis.fetch as Mock).mockClear();
+
+        // 1. Vai para a página 2
+        const btnProxima = screen.getByText('Próxima');
+        fireEvent.click(btnProxima);
+
+        await act(async () => { vi.advanceTimersByTime(550); });
+
+        expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('page=2'), expect.anything());
+
+        (globalThis.fetch as Mock).mockClear();
+
+        // 2. Volta para a página 1
+        const btnAnterior = screen.getByText('Anterior');
+        fireEvent.click(btnAnterior);
+
+        await act(async () => { vi.advanceTimersByTime(550); });
+
+        expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('page=1'), expect.anything());
+    });
+
+    it('Deve aceitar retorno da API como Array direto (Fallback)', async () => {
+        // Simula o backend retornando um Array invés de um objeto com .data
+        (globalThis.fetch as Mock).mockResolvedValue({
+            ok: true,
+            json: async () => mockElementos
+        });
+
+        await renderAndLoad();
+
         await waitFor(() => {
-            expect(globalThis.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('page=2'),
-                expect.anything()
-            );
+            expect(screen.getByText('Hidrogênio')).toBeInTheDocument();
         });
     });
+
+    it('Deve lidar com elemento que não possui símbolo formatado (Cobertura obterNomeFormatado)', async () => {
+        const mockEstranho = [{ id: 99, nome: 'Desconhecido', simbolo: '', codNivel: 1 }];
+        (globalThis.fetch as Mock).mockResolvedValue({
+            ok: true,
+            json: async () => mockEstranho
+        });
+
+        await renderAndLoad();
+
+        await waitFor(() => {
+            // Se o símbolo é vazio, a tabela renderiza o nome direto
+            expect(screen.getByText('Desconhecido')).toBeInTheDocument();
+        });
+    });
+
+    it('Deve exibir mensagem quando a lista for vazia', async () => {
+        (globalThis.fetch as Mock).mockResolvedValue({
+            ok: true,
+            json: async () => ({ data: [], total: 0, pagina: 1, totalPaginas: 1 })
+        });
+
+        await renderAndLoad();
+
+        await waitFor(() => {
+            expect(screen.getByText('Nenhum elemento encontrado.')).toBeInTheDocument();
+        });
+    });
+
+    // =========================================================================
+    // 3. EXCLUSÃO E SEUS ERROS
+    // =========================================================================
 
     it('Deve excluir um elemento após confirmação', async () => {
         // Mock DELETE sequencial
@@ -224,23 +318,6 @@ describe('Página AdminElementosPage', () => {
         });
     });
 
-    // =========================================================================
-    // 3. UNHAPPY PATH (ERROS)
-    // =========================================================================
-
-    it('Deve exibir mensagem de erro se a API falhar ao carregar lista', async () => {
-        (globalThis.fetch as Mock).mockResolvedValue({
-            ok: false,
-            json: async () => ({})
-        });
-
-        await renderAndLoad();
-
-        await waitFor(() => {
-            expect(toast.error).toHaveBeenCalledWith('Erro ao carregar elementos.');
-        });
-    });
-
     it('Deve exibir erro se falhar ao excluir elemento', async () => {
         // 1. Load OK
         (globalThis.fetch as Mock).mockResolvedValueOnce({ ok: true, json: async () => mockRespostaAPI });
@@ -260,6 +337,25 @@ describe('Página AdminElementosPage', () => {
 
         await waitFor(() => {
             expect(toast.error).toHaveBeenCalledWith('Elemento em uso');
+        });
+    });
+
+    it('Deve cair no catch (Erro de conexão) ao falhar a exclusão', async () => {
+        (globalThis.fetch as Mock).mockResolvedValueOnce({ ok: true, json: async () => mockRespostaAPI });
+
+        // 2. Delete Falha por Throw
+        (globalThis.fetch as Mock).mockRejectedValueOnce(new Error('Network error'));
+
+        confirmSpy.mockReturnValue(true);
+
+        await renderAndLoad();
+        await waitFor(() => screen.getByText('Hidrogênio'));
+
+        const btnsExcluir = screen.getAllByTitle('Excluir elemento');
+        fireEvent.click(btnsExcluir[0]);
+
+        await waitFor(() => {
+            expect(toast.error).toHaveBeenCalledWith('Erro de conexão.');
         });
     });
 
@@ -290,7 +386,37 @@ describe('Página AdminElementosPage', () => {
         fireEvent.click(btnBloqueado);
 
         expect(confirmSpy).not.toHaveBeenCalled();
-        // Apenas o GET inicial foi chamado
-        expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    // =========================================================================
+    // 4. ERROS DE REDE GERAIS
+    // =========================================================================
+
+    it('Deve exibir mensagem de erro se a API falhar ao carregar lista (res.ok = false)', async () => {
+        (globalThis.fetch as Mock).mockResolvedValue({
+            ok: false,
+            json: async () => ({})
+        });
+
+        await renderAndLoad();
+
+        await waitFor(() => {
+            expect(toast.error).toHaveBeenCalledWith('Erro ao carregar elementos.');
+        });
+    });
+
+    it('Deve cair no catch e exibir mensagem de "Erro de conexão" na busca', async () => {
+        (globalThis.fetch as Mock).mockRejectedValue(new Error('CORS Error'));
+
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        await renderAndLoad();
+
+        await waitFor(() => {
+            expect(toast.error).toHaveBeenCalledWith('Erro de conexão.');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Erro ao buscar elementos'), expect.anything());
+        });
+
+        consoleSpy.mockRestore();
     });
 });

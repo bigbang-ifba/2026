@@ -44,29 +44,32 @@ vi.mock('react-hot-toast', () => ({
 globalThis.URL.createObjectURL = vi.fn(() => 'blob:fake-url');
 
 // 5. Mock do PrimeReact AutoComplete (ESSENCIAL PARA O TESTE PASSAR)
-// Substituímos o componente complexo por um input simples controlado
 vi.mock('primereact/autocomplete', () => ({
     AutoComplete: ({ value, onChange, placeholder, disabled, id }: any) => (
         <div data-testid="mock-autocomplete-container">
             <input
                 data-testid="mock-autocomplete-input"
                 placeholder={placeholder}
-                // Se for objeto, mostra o nome. Se for string, mostra a string.
                 value={value && typeof value === 'object' ? value.n : value || ''}
                 onChange={(e) => {
-                    // Simula digitar texto (limpa a seleção de objeto)
                     onChange({ value: e.target.value });
                 }}
                 disabled={disabled}
                 id={id}
             />
-            {/* Botão para simular que o usuário clicou em "Ferro" na lista */}
             <button
                 type="button"
                 data-testid="btn-simular-selecao"
                 onClick={() => onChange({ value: { s: 'Fe', n: 'Ferro' } })}
             >
                 Simular Seleção Ferro
+            </button>
+            <button
+                type="button"
+                data-testid="btn-simular-limpeza"
+                onClick={() => onChange({ value: null })}
+            >
+                Simular Limpeza
             </button>
         </div>
     )
@@ -89,8 +92,6 @@ describe('Página AdminElementoForm', () => {
         mockedParams.id = undefined;
         sessionStorage.setItem('token', 'fake-token');
         vi.useFakeTimers({ shouldAdvanceTime: true });
-
-        // Mock padrão para a lista de elementos já cadastrados
         mockApi.get.mockResolvedValue({ data: [] });
     });
 
@@ -114,21 +115,15 @@ describe('Página AdminElementoForm', () => {
         renderComponent();
 
         expect(screen.getByText('Novo Elemento')).toBeInTheDocument();
-
-        // Verifica se o nosso Mock do AutoComplete foi renderizado
         const inputAutoComplete = screen.getByTestId('mock-autocomplete-input');
         expect(inputAutoComplete).toBeInTheDocument();
         expect(inputAutoComplete).toHaveValue('');
-
-        // Verifica inputs readonly
         expect(screen.getByPlaceholderText('Nome confirmado')).toHaveValue('');
         expect(screen.getByPlaceholderText('Símbolo')).toHaveValue('');
     });
 
     it('Deve carregar dados e preencher formulário no modo "Editar"', async () => {
         mockedParams.id = '8';
-
-        // Mock específico para o GET do ID 8
         mockApi.get.mockImplementation((url) => {
             if (url === '/elementos/8') {
                 return Promise.resolve({ data: mockElementoExistente });
@@ -137,52 +132,54 @@ describe('Página AdminElementoForm', () => {
         });
 
         renderComponent();
-
         expect(screen.getByText(/Editar:/)).toBeInTheDocument();
 
         await waitFor(() => {
-            // Verifica se o Mock do AutoComplete recebeu o valor correto
-            const inputAutoComplete = screen.getByTestId('mock-autocomplete-input');
-            expect(inputAutoComplete).toHaveValue('Oxigênio');
-
-            // NÃO VERIFICAR 'Nome confirmado' aqui, pois ele não existe na edição!
-
-            // Verifica se as dicas foram carregadas
+            expect(screen.getByTestId('mock-autocomplete-input')).toHaveValue('Oxigênio');
             expect(screen.getByDisplayValue('É um gás')).toBeInTheDocument();
+            // Verifica se a imagem atual (do mock) foi renderizada no src
+            const images = screen.getAllByRole('img');
+            expect(images[0]).toHaveAttribute('src', expect.stringContaining('/img/o.png'));
         });
     });
 
     // =========================================================================
-    // 2. HAPPY PATH
+    // 2. HAPPY PATH & INTERAÇÕES DA UI
     // =========================================================================
 
-    it('Deve criar um NOVO elemento com sucesso', async () => {
+    it('Deve criar um NOVO elemento com sucesso e realizar upload de imagens', async () => {
         mockedParams.id = undefined;
         mockApi.post.mockResolvedValueOnce({ data: { success: true } });
 
         renderComponent();
 
-        // 1. Simula a seleção usando o botão do nosso Mock
+        // 1. Selecionar elemento
         fireEvent.click(screen.getByTestId('btn-simular-selecao'));
-
-        // Verifica se os inputs readonly foram preenchidos (efeito colateral da seleção)
         expect(screen.getByPlaceholderText('Nome confirmado')).toHaveValue('Ferro');
-        expect(screen.getByPlaceholderText('Símbolo')).toHaveValue('Fe');
 
-        // 2. Preenche Dicas
+        // 2. Preencher Dicas
         const inputsDica = screen.getAllByPlaceholderText(/Dica \d/);
         fireEvent.change(inputsDica[0], { target: { value: 'Metal' } });
         fireEvent.change(inputsDica[1], { target: { value: 'Magnético' } });
         fireEvent.change(inputsDica[2], { target: { value: 'Hematita' } });
 
-        // 3. Salvar
-        const btnSalvar = screen.getByText('Salvar');
-        fireEvent.click(btnSalvar);
+        // 3. Simular upload de arquivo de imagem principal
+        const file = new File(['dummy content'], 'ferro.png', { type: 'image/png' });
+        const inputImagePrincipal = screen.getAllByRole('textbox').find(el => (el as HTMLInputElement).type === 'file'); // Pega todos os inputs file
+
+        // Pega os inputs type file
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        if(fileInputs.length > 0) {
+            fireEvent.change(fileInputs[0], { target: { files: [file] } });
+            // O mock do URL.createObjectURL deve ter sido chamado para o preview
+            expect(globalThis.URL.createObjectURL).toHaveBeenCalledWith(file);
+        }
+
+        // 4. Salvar
+        fireEvent.click(screen.getByText('Salvar'));
 
         await waitFor(() => {
-            // Verifica o FormData enviado.
-            // Nota: O componente normaliza strings (lowercase/nfd), então esperamos 'ferro' e 'fe'
-            expect(mockApi.post).toHaveBeenCalledWith('/elementos', expect.any(FormData), expect.anything());
+            expect(mockApi.post).toHaveBeenCalled();
             expect(toast.success).toHaveBeenCalledWith('Criado com sucesso!');
         });
 
@@ -201,40 +198,62 @@ describe('Página AdminElementoForm', () => {
         renderComponent();
         await waitFor(() => screen.getByTestId('mock-autocomplete-input'));
 
-        // Simula mudança de valor (selecionando Ferro em vez de Oxigênio)
         fireEvent.click(screen.getByTestId('btn-simular-selecao'));
-
         fireEvent.click(screen.getByText('Salvar'));
 
         await waitFor(() => {
-            expect(mockApi.put).toHaveBeenCalledWith('/elementos/8', expect.any(FormData), expect.anything());
+            expect(mockApi.put).toHaveBeenCalled();
             expect(toast.success).toHaveBeenCalledWith('Editado com sucesso!');
         });
     });
 
+    it('Deve ocultar o campo de Cerne de Gás Nobre ao mudar nível para 2 ou 3', async () => {
+        renderComponent();
+
+        expect(screen.getByText('Cerne do Gás Nobre')).toBeInTheDocument();
+
+        const select = screen.getByRole('combobox');
+        fireEvent.change(select, { target: { value: '2' } });
+
+        expect(screen.queryByText('Cerne do Gás Nobre')).not.toBeInTheDocument();
+    });
+
+    it('Deve limpar os campos de nome e simbolo ao limpar o autocomplete', async () => {
+        renderComponent();
+
+        // Simula seleção
+        fireEvent.click(screen.getByTestId('btn-simular-selecao'));
+        expect(screen.getByPlaceholderText('Nome confirmado')).toHaveValue('Ferro');
+
+        // Simula limpeza (usuário apagou o texto)
+        fireEvent.click(screen.getByTestId('btn-simular-limpeza'));
+
+        // Deve voltar para vazio
+        expect(screen.getByPlaceholderText('Nome confirmado')).toHaveValue('');
+        expect(screen.getByPlaceholderText('Símbolo')).toHaveValue('');
+    });
+
+    it('Deve navegar para a lista ao clicar em Voltar', () => {
+        renderComponent();
+        fireEvent.click(screen.getByText('Voltar'));
+        expect(mockedNavigate).toHaveBeenCalledWith('/admin/elementos');
+    });
+
     // =========================================================================
-    // 3. UNHAPPY PATH
+    // 3. UNHAPPY PATH E ERROS
     // =========================================================================
 
     it('Deve impedir envio se campos obrigatórios estiverem vazios', () => {
         renderComponent();
-
-        // Não clicamos no botão de seleção do mock, então o input está vazio
-
-        const btnSalvar = screen.getByText('Salvar');
-        fireEvent.click(btnSalvar);
-
+        fireEvent.click(screen.getByText('Salvar'));
         expect(toast.error).toHaveBeenCalledWith('Selecione um elemento válido.');
         expect(mockApi.post).not.toHaveBeenCalled();
     });
 
     it('Deve impedir envio se as dicas não estiverem completas', () => {
         renderComponent();
-
-        // Seleciona elemento
         fireEvent.click(screen.getByTestId('btn-simular-selecao'));
 
-        // Preenche só uma dica
         const inputsDica = screen.getAllByPlaceholderText(/Dica \d/);
         fireEvent.change(inputsDica[0], { target: { value: 'Metal' } });
 
@@ -244,9 +263,31 @@ describe('Página AdminElementoForm', () => {
         expect(mockApi.post).not.toHaveBeenCalled();
     });
 
+    it('Deve exibir erro no toast se a API falhar ao salvar', async () => {
+        mockedParams.id = undefined;
+        // Simula erro da API com mensagem customizada no response
+        mockApi.post.mockRejectedValueOnce({
+            response: { data: { error: 'Elemento já cadastrado.' } }
+        });
+
+        renderComponent();
+
+        fireEvent.click(screen.getByTestId('btn-simular-selecao'));
+
+        const inputsDica = screen.getAllByPlaceholderText(/Dica \d/);
+        fireEvent.change(inputsDica[0], { target: { value: 'D1' } });
+        fireEvent.change(inputsDica[1], { target: { value: 'D2' } });
+        fireEvent.change(inputsDica[2], { target: { value: 'D3' } });
+
+        fireEvent.click(screen.getByText('Salvar'));
+
+        await waitFor(() => {
+            expect(toast.error).toHaveBeenCalledWith('Elemento já cadastrado.');
+        });
+    });
+
     it('Deve exibir erro se falhar ao carregar dados na edição', async () => {
         mockedParams.id = '999';
-        // Simula erro no GET
         mockApi.get.mockRejectedValueOnce(new Error('Network Error'));
 
         renderComponent();

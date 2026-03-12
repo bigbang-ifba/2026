@@ -46,7 +46,7 @@ describe('Página NiveisPage', () => {
         );
     };
 
-    // --- TESTES CORRIGIDOS ---
+    // --- TESTES ---
 
     it('Deve mostrar "Carregando..." enquanto busca dados', () => {
         window.fetch = vi.fn().mockReturnValue(new Promise(() => {})) as unknown as typeof fetch;
@@ -70,18 +70,18 @@ describe('Página NiveisPage', () => {
         renderPage();
 
         await waitFor(() => {
-            expect(screen.getByTitle('Nível INICIANTE')).toBeInTheDocument();
-            expect(screen.getByTitle('Nível CURIOSO')).toBeInTheDocument();
-            expect(screen.getByTitle('Nível CIENTISTA')).toBeInTheDocument();
+            expect(screen.getByAltText('INICIANTE')).toBeInTheDocument();
+            expect(screen.getByAltText('CURIOSO')).toBeInTheDocument();
+            expect(screen.getByAltText('CIENTISTA')).toBeInTheDocument();
         });
     });
 
     it('Deve ter os links corretos para a seleção de perfil', async () => {
         renderPage();
-        await waitFor(() => screen.getByTitle('Nível INICIANTE'));
+        await waitFor(() => screen.getByAltText('INICIANTE'));
 
-        const linkIniciante = screen.getByTitle('Nível INICIANTE').closest('a');
-        const linkCurioso = screen.getByTitle('Nível CURIOSO').closest('a');
+        const linkIniciante = screen.getByAltText('INICIANTE').closest('a');
+        const linkCurioso = screen.getByAltText('CURIOSO').closest('a');
 
         expect(linkIniciante).toHaveAttribute('href', '/jogo/selecao-perfil/1');
         expect(linkCurioso).toHaveAttribute('href', '/jogo/selecao-perfil/2');
@@ -89,9 +89,9 @@ describe('Página NiveisPage', () => {
 
     it('Deve tocar o som ao clicar no container do nível', async () => {
         renderPage();
-        await waitFor(() => screen.getByTitle('Nível INICIANTE'));
+        await waitFor(() => screen.getByAltText('INICIANTE'));
 
-        const imgNivel1 = screen.getByTitle('Nível INICIANTE');
+        const imgNivel1 = screen.getByAltText('INICIANTE');
         fireEvent.click(imgNivel1);
 
         expect(window.Audio).toHaveBeenCalledWith('/musica/selecao-nivel.wav');
@@ -100,9 +100,9 @@ describe('Página NiveisPage', () => {
 
     it('Deve ter um botão de voltar para o menu', async () => {
         renderPage();
-        await waitFor(() => screen.getByTitle('Nível INICIANTE'));
+        await waitFor(() => screen.getByAltText('INICIANTE'));
 
-        const btnVoltar = screen.getByTitle('Voltar');
+        const btnVoltar = screen.getByTitle('Voltar'); // O botão voltar de fato tem a tag title="Voltar"
         expect(btnVoltar).toBeInTheDocument();
 
         const linkVoltar = btnVoltar.closest('a');
@@ -124,10 +124,8 @@ describe('Página NiveisPage', () => {
         renderPage();
 
         await waitFor(() => {
-            // O nível 1 deve aparecer
-            expect(screen.getByTitle('Nível INICIANTE')).toBeInTheDocument();
-            // O nível 99 NÃO deve aparecer (e não deve quebrar a página)
-            expect(screen.queryByTitle(/ALIENIGENA/i)).not.toBeInTheDocument();
+            expect(screen.getByAltText('INICIANTE')).toBeInTheDocument();
+            expect(screen.queryByAltText(/ALIENIGENA/i)).not.toBeInTheDocument();
         });
     });
 });

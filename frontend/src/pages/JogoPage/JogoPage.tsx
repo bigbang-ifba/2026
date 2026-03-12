@@ -531,5 +531,4 @@ const JogoPage: React.FC = () => {
     );
 };
 
-
 export default JogoPage;

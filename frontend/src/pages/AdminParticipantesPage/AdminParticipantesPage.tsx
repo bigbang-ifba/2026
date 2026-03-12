@@ -27,7 +27,7 @@ interface RespostaAPI {
 const AdminParticipantesPage: React.FC = () => {
     // --- ESTADOS ---
     const [busca, setBusca] = useState('');
-    const [nivelFiltro, setNivelFiltro] = useState('TODOS'); // <--- NOVO ESTADO DO FILTRO
+    const [nivelFiltro, setNivelFiltro] = useState('TODOS');
     const [participantes, setParticipantes] = useState<Participante[]>([]);
     const [loading, setLoading] = useState(true);
 

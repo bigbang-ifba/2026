@@ -151,15 +151,15 @@ const AdminElementoForm: React.FC = () => {
     };
 
     return (
-        <div className="container mt-4 text-white" style={{ maxWidth: '900px', paddingBottom: '150px' }}>
+        <div className="container mt-4 text-white" style={{ maxWidth: '1200px', paddingBottom: '150px' }}>
             <style>{`
-                .custom-autocomplete .p-inputtext {
-                    padding-top: 1rem;
-                    padding-bottom: 1rem;
-                    font-size: 1.1rem;
+                .custom-large-input {
+                    font-size: 1.1rem !important;
+                    border-radius: 8px;
                 }
-                .custom-autocomplete .p-autocomplete-dropdown {
-                    width: 3rem;
+                
+                .custom-autocomplete .p-inputtext {
+                    font-size: 1.1rem !important;
                 }
                 .p-autocomplete-panel {
                     background-color: white !important;
@@ -173,7 +173,8 @@ const AdminElementoForm: React.FC = () => {
             {erro && <div className="alert alert-danger">{erro}</div>}
 
             <div className="row" style={{ overflow: 'visible' }}>
-                <div className="col-md-4 mb-4">
+
+                <div className="col-md-3 mb-4">
                     <div className="text-center mb-4">
                         <label className="form-label fw-bold">Imagem Principal</label>
                         <div style={{ width: '100%', height: '200px', backgroundColor: '#222', border: '2px dashed #15d2a3', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -182,7 +183,6 @@ const AdminElementoForm: React.FC = () => {
                                     <div className="text-muted"><i className="bi bi-image fs-1"></i></div>}
                         </div>
                         <input type="file" className="form-control mt-2" accept="image/*" onChange={handleImageChange} />
-                        {/* AVISO DE RESOLUÇÃO - Cor alterada para text-light */}
                         <small className="text-light d-block mt-1" style={{ fontSize: '0.85rem' }}>
                             Resolução máxima: 89x84 px
                         </small>
@@ -200,9 +200,9 @@ const AdminElementoForm: React.FC = () => {
                     )}
                 </div>
 
-                <div className="col-md-8" style={{ overflow: 'visible' }}>
+                <div className="col-md-9" style={{ overflow: 'visible' }}>
                     <div className="mb-4" style={{ position: 'relative', zIndex: 100 }}>
-                        <label className="form-label text-warning">
+                        <label className="form-label text-warning fs-6">
                             {id ? 'Elemento (Leitura)' : 'Pesquisar Elemento'}
                         </label>
 
@@ -224,23 +224,23 @@ const AdminElementoForm: React.FC = () => {
                             appendTo={document.body}
                         />
 
-                        {!id && <small className="text-muted d-block mt-2">Comece a digitar ou clique na seta para ver a lista.</small>}
+                        {!id && <small className="text-muted d-block mt-2 fs-6">Comece a digitar ou clique na seta para ver a lista.</small>}
                     </div>
 
                     {!id && (
-                        <div className="row mb-3">
+                        <div className="row mb-4">
                             <div className="col-9">
-                                <input type="text" className="form-control bg-secondary text-white border-0" value={nome} readOnly placeholder="Nome confirmado" />
+                                <input type="text" className="form-control bg-secondary text-white border-0 custom-large-input" value={nome} readOnly placeholder="Nome confirmado" />
                             </div>
                             <div className="col-3">
-                                <input type="text" className="form-control bg-secondary text-white border-0 text-center fw-bold" value={simbolo} readOnly placeholder="Símbolo" />
+                                <input type="text" className="form-control bg-secondary text-white border-0 text-center fw-bold custom-large-input" value={simbolo} readOnly placeholder="Símbolo" />
                             </div>
                         </div>
                     )}
 
                     <div className="mb-4">
-                        <label className="form-label">Nível</label>
-                        <select className="form-select form-select-lg" value={nivel} onChange={e => setNivel(e.target.value)}>
+                        <label className="form-label fs-6">Nível</label>
+                        <select className="form-select custom-large-input" value={nivel} onChange={e => setNivel(e.target.value)}>
                             <option value="1">1 - Iniciante</option>
                             <option value="2">2 - Curioso</option>
                             <option value="3">3 - Cientista</option>
@@ -250,15 +250,23 @@ const AdminElementoForm: React.FC = () => {
                     <div className="card bg-dark border-secondary p-4">
                         <h5 className="text-info mb-3">Dicas (3 Obrigatórias)</h5>
                         {[0, 1, 2].map(idx => (
-                            <div className="mb-2" key={idx}>
-                                <input type="text" className="form-control" placeholder={`Dica ${idx + 1}`} value={dicas[idx]} onChange={(e) => handleDicaChange(idx, e.target.value)} />
+                            <div className="mb-3" key={idx}>
+                                <textarea
+                                    className="form-control custom-large-input"
+                                    placeholder={`Dica ${idx + 1}`}
+                                    value={dicas[idx]}
+                                    onChange={(e) => handleDicaChange(idx, e.target.value)}
+                                    rows={2}
+                                    style={{ resize: 'vertical' }}
+                                    maxLength={150}
+                                />
                             </div>
                         ))}
                     </div>
 
                     <div className="d-flex justify-content-end gap-3 mt-4">
-                        <button className="btn btn-secondary" onClick={() => navigate('/admin/elementos')} disabled={loading}>Voltar</button>
-                        <button className="btn btn-success px-5" onClick={handleSalvar} disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</button>
+                        <button className="btn btn-secondary px-4" onClick={() => navigate('/admin/elementos')} disabled={loading}>Voltar</button>
+                        <button className="btn btn-success px-5 fw-bold" onClick={handleSalvar} disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</button>
                     </div>
                 </div>
             </div>
