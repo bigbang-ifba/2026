@@ -1,9 +1,11 @@
 import React from 'react';
 import '../../styles/styleGameHistoryModal.css';
+// Importação da função de links criada na pasta constants
+import { obterLinkElemento } from '../../constants/LinksElementos.ts';
 
 export interface HistoricoJogada {
     rodada: number;
-    nomeElemento: string; // Mantemos na interface caso precise no futuro, mas não exibimos no título
+    nomeElemento: string;
     imagemUrl: string;
     acertouDica: boolean;
     acertouPosicao: boolean;
@@ -44,24 +46,34 @@ const GameHistoryModal: React.FC<GameHistoryModalProps> = ({ isOpen, onClose, hi
                         <div className="history-list">
                             {historico.map((item, index) => (
                                 <div key={index} className="history-item">
-                                    {/* Imagem */}
+
+                                    {/* Imagem agora é um link clicável (Lógica abstraída para constants) */}
                                     <div className="history-img-container">
-                                        <img
-                                            src={item.imagemUrl}
-                                            alt={`Rodada ${item.rodada}`}
-                                            className="history-img"
-                                        />
+                                        <a
+                                            href={obterLinkElemento(item.nomeElemento)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title={`Saiba mais sobre ${item.nomeElemento} no portal do CRQ`}
+                                            style={{ display: 'block', cursor: 'pointer' }}
+                                        >
+                                            <img
+                                                src={item.imagemUrl}
+                                                alt={`Rodada ${item.rodada}`}
+                                                className="history-img"
+                                                style={{ transition: 'transform 0.2s ease' }}
+                                                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                            />
+                                        </a>
                                     </div>
 
                                     {/* Conteúdo */}
                                     <div style={{ flexGrow: 1 }}>
                                         <div className="d-flex justify-content-between align-items-start mb-2">
-                                            {/* Título SEM o nome do elemento */}
                                             <span className="history-item-title">
                                                 {item.rodada}ª Rodada
                                             </span>
 
-                                            {/* Badge de Pontos */}
                                             <span className={`badge ${item.pontosGanhos > 0 ? 'bg-success' : 'bg-danger'}`}>
                                                 {item.pontosGanhos > 0 ? `+${item.pontosGanhos} pts` : '0 pts'}
                                             </span>
