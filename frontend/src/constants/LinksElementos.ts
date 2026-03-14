@@ -96,7 +96,6 @@ const LISTA_ACTINIDEOS = ["actinio", "torio", "protactinio", "uranio", "netunio"
 
 const LINK_PADRAO = "https://crqsp.org.br/tabelaperiodica/";
 
-// Exportamos apenas a função que o front-end vai usar
 export const obterLinkElemento = (nomeElemento: string): string => {
     if (!nomeElemento) return LINK_PADRAO;
 

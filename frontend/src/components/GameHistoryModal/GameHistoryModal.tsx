@@ -47,7 +47,6 @@ const GameHistoryModal: React.FC<GameHistoryModalProps> = ({ isOpen, onClose, hi
                             {historico.map((item, index) => (
                                 <div key={index} className="history-item">
 
-                                    {/* Imagem agora é um link clicável (Lógica abstraída para constants) */}
                                     <div className="history-img-container">
                                         <a
                                             href={obterLinkElemento(item.nomeElemento)}
