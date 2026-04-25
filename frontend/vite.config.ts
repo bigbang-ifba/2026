@@ -1,6 +1,5 @@
-// Alternativa: Importar de 'vitest/config' em vez de 'vite'
-import { defineConfig } from 'vitest/config' // <--- Mudou aqui
-import { loadEnv } from 'vite'
+import { defineConfig } from 'vitest/config'
+import { loadEnv, type ServerOptions } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ mode }: { mode: string }) => {
@@ -13,7 +12,7 @@ export default defineConfig(({ mode }: { mode: string }) => {
     .map((host: string) => host.trim())
     .filter(Boolean)
 
-  const allowedHosts = allowAllHosts
+  const allowedHosts: ServerOptions['allowedHosts'] = allowAllHosts
     ? true
     : allowedHostsFromEnv.length > 0
       ? allowedHostsFromEnv
