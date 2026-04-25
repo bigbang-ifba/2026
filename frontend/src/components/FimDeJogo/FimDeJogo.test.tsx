@@ -23,7 +23,8 @@ describe('Componente FimDeJogo', () => {
     const propsPadrao = {
         pontuacao: 150,
         nivel: 'CURIOSO',
-        nomeJogador: 'Mestre dos Elementos'
+        nomeJogador: 'Mestre dos Elementos',
+        historico: [],
     };
 
     // =========================================================================
