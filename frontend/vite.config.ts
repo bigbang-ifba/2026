@@ -13,15 +13,21 @@ export default defineConfig(({ mode }: { mode: string }) => {
     .map((host: string) => host.trim())
     .filter(Boolean)
 
+  const allowedHosts = allowAllHosts
+    ? true
+    : allowedHostsFromEnv.length > 0
+      ? allowedHostsFromEnv
+      : undefined
+
   return {
     plugins: [react()],
     server: {
       host: true,
-      allowedHosts: allowAllHosts ? true : allowedHostsFromEnv,
+      allowedHosts,
     },
     preview: {
       host: true,
-      allowedHosts: allowAllHosts ? true : allowedHostsFromEnv,
+      allowedHosts,
     },
     test: {
       globals: true,

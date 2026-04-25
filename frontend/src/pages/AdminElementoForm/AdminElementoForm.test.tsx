@@ -165,7 +165,6 @@ describe('Página AdminElementoForm', () => {
 
         // 3. Simular upload de arquivo de imagem principal
         const file = new File(['dummy content'], 'ferro.png', { type: 'image/png' });
-        const inputImagePrincipal = screen.getAllByRole('textbox').find(el => (el as HTMLInputElement).type === 'file'); // Pega todos os inputs file
 
         // Pega os inputs type file
         const fileInputs = document.querySelectorAll('input[type="file"]');
