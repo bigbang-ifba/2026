@@ -54,7 +54,7 @@ describe('Participante Controller', () => {
 
             await ParticipanteController.listar(req as Request, res as Response);
 
-            expect(mockListar).toHaveBeenCalledWith(1, 10);
+            expect(mockListar).toHaveBeenCalledWith(1, 10, undefined, undefined);
             expect(res.json).toHaveBeenCalledWith(mockResultado);
         });
 
@@ -64,7 +64,7 @@ describe('Participante Controller', () => {
 
             await ParticipanteController.listar(req as Request, res as Response);
 
-            expect(mockListar).toHaveBeenCalledWith(2, 20);
+            expect(mockListar).toHaveBeenCalledWith(2, 20, undefined, undefined);
         });
 
         it('Erro: Deve retornar 500 se o service falhar', async () => {
@@ -126,4 +126,4 @@ describe('Participante Controller', () => {
             expect(jsonMock).toHaveBeenCalledWith({ error: 'Erro ao atualizar participante' });
         });
     });
-});
+})

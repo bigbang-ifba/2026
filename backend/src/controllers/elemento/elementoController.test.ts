@@ -64,7 +64,7 @@ describe('Elemento Controller', () => {
 
             await ElementoController.listar(req as Request, res as Response);
 
-            expect(ElementoService.listarElementos).toHaveBeenCalledWith(1, 10, undefined);
+            expect(ElementoService.listarElementos).toHaveBeenCalledWith(1, 10, undefined, undefined);
             expect(res.json).toHaveBeenCalledWith(mockResultado);
         });
 
@@ -231,4 +231,4 @@ describe('Elemento Controller', () => {
             expect(statusMock).toHaveBeenCalledWith(500);
         });
     });
-});
+})

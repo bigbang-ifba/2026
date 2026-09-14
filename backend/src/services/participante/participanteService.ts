@@ -1,5 +1,5 @@
 import prisma from '../../prismaClient.js';
-import { Prisma } from '@prisma/client'; // Importar Prisma para tipagem
+import { Prisma, ranking_nivel } from '@prisma/client'; // Importar Prisma para tipagem
 
 interface ResultadoPaginado {
     data: any[];
@@ -21,8 +21,9 @@ export const listarParticipantes = async (page: number = 1, limit: number = 10, 
 
     // 2. Filtro de Nível (Radio Button)
     // Se vier algo diferente de "TODOS" e não for nulo, aplicamos o filtro
-    if (nivel && nivel !== 'TODOS') {
-        where.nivel = nivel;
+    // Valores fora do enum são ignorados (antes causavam erro 500 no Prisma)
+    if (nivel && nivel in ranking_nivel) {
+        where.nivel = nivel as ranking_nivel;
     }
 
     const [total, participantes] = await prisma.$transaction([
