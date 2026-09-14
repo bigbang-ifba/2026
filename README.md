@@ -60,8 +60,8 @@ MYSQL_DATABASE=nomebanco
 
 # --- Configurações do Backend ---
 # A URL de conexão deve usar a senha e o banco definidos acima.
-# Formato Docker: mysql://usuario:senha@db:3306/nome-banco
-DATABASE_URL="mysql://usuario:senha@db:3306/nomebanco"
+# Formato Docker: mysql://root:senha@db:3306/nome-banco
+DATABASE_URL="mysql://root:senha@db:3306/nomebanco"
 
 # Chave secreta para criptografia (JWT)
 JWT_SECRET="coloque_chave_secreta"

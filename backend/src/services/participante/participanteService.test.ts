@@ -44,6 +44,7 @@ describe('Participante Service', () => {
 
             // Verifica se os argumentos do findMany estavam certos (skip: 0 para pág 1)
             expect(prismaMock.ranking.findMany).toHaveBeenCalledWith({
+                where: {},
                 orderBy: { pontuacao: 'desc' },
                 skip: 0,
                 take: 10
@@ -125,4 +126,4 @@ describe('Participante Service', () => {
                 .rejects.toThrow('Record to update not found');
         });
     });
-});
+})
