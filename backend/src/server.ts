@@ -13,10 +13,16 @@ import adminRoutes from "./routes/adminRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// Aceita uma lista separada por vírgula, para liberar mais de uma origem
+// (ex.: localhost no PC e o IP da rede local ao testar no celular).
 const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const origensPermitidas = frontendUrl
+    .split(',')
+    .map(origem => origem.trim())
+    .filter(Boolean);
 
 app.use(cors({
-    origin: [frontendUrl, 'http://localhost:3000'],
+    origin: [...origensPermitidas, 'http://localhost:3000'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
 }));
