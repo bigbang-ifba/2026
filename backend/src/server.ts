@@ -63,9 +63,16 @@ app.get('/', (req: Request, res: Response) => {
     });
 });
 
-app.use('/api/ranking', rankingRoutes);
-app.use('/api/jogo', jogoRoutes);
-app.use('/api', adminRoutes);
+// O proxy do Coolify remove o prefixo /api antes de repassar a requisição ao
+// container, então as rotas são montadas nos dois caminhos: com e sem o prefixo.
+const apiRoutes = express.Router();
+
+apiRoutes.use('/ranking', rankingRoutes);
+apiRoutes.use('/jogo', jogoRoutes);
+apiRoutes.use(adminRoutes);
+
+app.use('/api', apiRoutes);
+app.use(apiRoutes);
 
 app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
