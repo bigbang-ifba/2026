@@ -110,6 +110,16 @@ Este projeto utiliza Docker para garantir que funcione em qualquer máquina sem 
     * **Jogo (Front-end):** `http://localhost:5173`
     * **API (Back-end):** `http://localhost:3000`
 
+## 🌐 Domínio com e sem `www` (deploy)
+
+Para o site abrir tanto em `dominio.com` quanto em `www.dominio.com`, três camadas precisam reconhecer o host:
+
+1.  **DNS:** além do registro do domínio raiz, crie o registro do `www` (um `CNAME` de `www` apontando para `dominio.com`, ou um `A` com o mesmo IP do servidor).
+2.  **Coolify (proxy Traefik):** no campo *Domains* da aplicação do front-end informe os dois endereços separados por vírgula — `https://dominio.com,https://www.dominio.com` — para o certificado e o roteamento cobrirem ambos. Faça o mesmo no domínio da API, se ela usar um host próprio.
+3.  **Aplicação:** basta informar **uma** das formas nas variáveis abaixo; o código libera a variante com e sem `www` automaticamente.
+    * `CORS_ORIGIN` (back-end) — origens aceitas pela API.
+    * `VITE_ALLOWED_HOSTS` (front-end) — hosts aceitos pelo servidor do Vite. Em produção, com a imagem `Dockerfile.coolify` (Nginx), qualquer host já é aceito.
+
 ## 🧪 Testes Automatizados
 
 Para garantir a estabilidade do sistema, execute os testes unitários.

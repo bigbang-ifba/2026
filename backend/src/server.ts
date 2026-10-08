@@ -16,10 +16,36 @@ const PORT = process.env.PORT || 3000;
 // Aceita uma lista separada por vírgula, para liberar mais de uma origem
 // (ex.: localhost no PC e o IP da rede local ao testar no celular).
 const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
-const origensPermitidas = frontendUrl
-    .split(',')
-    .map(origem => origem.trim())
-    .filter(Boolean);
+
+// O site pode ser aberto com ou sem "www." e o navegador envia a origem
+// exatamente como foi digitada na barra de endereços. Para não depender de
+// listar as duas formas na variável de ambiente, cada origem configurada já
+// libera as duas variantes (com e sem www).
+const comVariantesDeWww = (origem: string): string[] => {
+    try {
+        const url = new URL(origem);
+        const hosts = url.hostname.startsWith('www.')
+            ? [url.hostname, url.hostname.slice(4)]
+            : [url.hostname, `www.${url.hostname}`];
+
+        return hosts.map(host => {
+            const variante = new URL(origem);
+            variante.hostname = host;
+            return variante.origin;
+        });
+    } catch {
+        // Valor que não é uma URL válida continua sendo usado como veio.
+        return [origem];
+    }
+};
+
+const origensPermitidas = Array.from(new Set(
+    frontendUrl
+        .split(',')
+        .map(origem => origem.trim())
+        .filter(Boolean)
+        .flatMap(comVariantesDeWww)
+));
 
 app.use(cors({
     origin: [...origensPermitidas, 'http://localhost:3000'],
@@ -59,7 +85,7 @@ app.use('/uploads', express.static(uploadConfig.directory));
 app.get('/', (req: Request, res: Response) => {
     res.status(200).json({
         message: 'BigBang API está online!',
-        cors_allowed: frontendUrl
+        cors_allowed: origensPermitidas
     });
 });
 

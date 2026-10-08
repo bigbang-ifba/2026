@@ -49,6 +49,10 @@ services:
       - backend
     environment:
       VITE_API_URL: ${VITE_API_URL}
+      # Hosts aceitos pelo servidor do Vite (o domínio com e sem "www." é
+      # liberado automaticamente a partir do que for informado aqui).
+      VITE_ALLOWED_HOSTS: ${VITE_ALLOWED_HOSTS:-}
+      VITE_ALLOW_ALL_HOSTS: ${VITE_ALLOW_ALL_HOSTS:-}
 
 volumes:
   mysql_data:
