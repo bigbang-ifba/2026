@@ -26,7 +26,7 @@ const mockParticipantes = [
 
 const mockRespostaAPI = {
     data: mockParticipantes,
-    total: 4,
+    total: 8, // 2 páginas de 4 participantes
     pagina: 1,
     totalPaginas: 2
 };
@@ -292,6 +292,144 @@ describe('Página AdminParticipantesPage', () => {
         await waitFor(() => {
             expect(toast.error).toHaveBeenCalledWith('Erro de conexão.');
         });
+    });
+
+    it('Deve excluir apenas os participantes marcados nos checkboxes', async () => {
+        await renderAndLoad();
+        await waitFor(() => screen.getByText('Jogador 1'));
+
+        fireEvent.click(screen.getByLabelText('Selecionar Jogador 1'));
+        fireEvent.click(screen.getByLabelText('Selecionar Jogador 3'));
+
+        const btnExcluirSelecionados = screen.getByTitle('Excluir selecionados');
+        expect(btnExcluirSelecionados).toHaveTextContent('(2)');
+
+        (globalThis.fetch as Mock)
+            .mockResolvedValueOnce({ ok: true, json: async () => ({ excluidos: 2 }) }) // Delete em lote
+            .mockResolvedValueOnce({ ok: true, json: async () => mockRespostaAPI }); // Recarregamento
+
+        confirmSpy.mockReturnValue(true);
+        fireEvent.click(btnExcluirSelecionados);
+
+        await act(async () => { vi.advanceTimersByTime(550); });
+
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/api/participantes'),
+            expect.objectContaining({
+                method: 'DELETE',
+                body: JSON.stringify({ ids: [101, 103] })
+            })
+        );
+        expect(toast.success).toHaveBeenCalledWith('2 participante(s) excluído(s)!');
+    });
+
+    it('Deve marcar e desmarcar todos com o "Selecionar todos"', async () => {
+        await renderAndLoad();
+        await waitFor(() => screen.getByText('Jogador 1'));
+
+        const checkTodos = screen.getAllByLabelText('Selecionar todos')[0];
+
+        fireEvent.click(checkTodos);
+        expect(screen.getByTitle('Excluir selecionados')).toHaveTextContent('(4)');
+        expect(screen.getByLabelText('Selecionar Jogador 2')).toBeChecked();
+
+        fireEvent.click(checkTodos);
+        expect(screen.getByTitle('Excluir selecionados')).toHaveTextContent('(0)');
+        expect(screen.getByLabelText('Selecionar Jogador 2')).not.toBeChecked();
+    });
+
+    it('Deve oferecer e usar a seleção de todos os participantes do filtro', async () => {
+        await renderAndLoad();
+        await waitFor(() => screen.getByText('Jogador 1'));
+
+        // Só aparece depois que a página inteira está marcada
+        expect(screen.queryByText(/Selecionar todos os 8 participantes/)).not.toBeInTheDocument();
+        fireEvent.click(screen.getAllByLabelText('Selecionar todos')[0]);
+
+        fireEvent.click(screen.getByText(/Selecionar todos os 8 participantes/));
+        expect(screen.getByTitle('Excluir selecionados')).toHaveTextContent('(8)');
+
+        (globalThis.fetch as Mock)
+            .mockResolvedValueOnce({ ok: true, json: async () => ({ excluidos: 8 }) })
+            .mockResolvedValueOnce({ ok: true, json: async () => mockRespostaAPI });
+
+        confirmSpy.mockReturnValue(true);
+        fireEvent.click(screen.getByTitle('Excluir selecionados'));
+
+        await act(async () => { vi.advanceTimersByTime(550); });
+
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/api/participantes'),
+            expect.objectContaining({
+                method: 'DELETE',
+                body: JSON.stringify({ todos: true, busca: '', nivel: 'TODOS' })
+            })
+        );
+        expect(toast.success).toHaveBeenCalledWith('8 participante(s) excluído(s)!');
+    });
+
+    it('Deve voltar para a seleção da página ao desmarcar uma linha', async () => {
+        await renderAndLoad();
+        await waitFor(() => screen.getByText('Jogador 1'));
+
+        fireEvent.click(screen.getAllByLabelText('Selecionar todos')[0]);
+        fireEvent.click(screen.getByText(/Selecionar todos os 8 participantes/));
+        expect(screen.getByTitle('Excluir selecionados')).toHaveTextContent('(8)');
+
+        // Desmarcar uma linha cancela a seleção do filtro inteiro
+        fireEvent.click(screen.getByLabelText('Selecionar Jogador 2'));
+        expect(screen.getByTitle('Excluir selecionados')).toHaveTextContent('(3)');
+    });
+
+    it('Deve limpar a seleção ao mudar de página', async () => {
+        await renderAndLoad();
+        await waitFor(() => screen.getByText('Página 1 de 2'));
+
+        fireEvent.click(screen.getByLabelText('Selecionar Jogador 1'));
+        expect(screen.getByTitle('Excluir selecionados')).toHaveTextContent('(1)');
+
+        fireEvent.click(screen.getByText('Próxima'));
+        await act(async () => { vi.advanceTimersByTime(550); });
+
+        expect(screen.getByTitle('Excluir selecionados')).toHaveTextContent('(0)');
+    });
+
+    it('Deve exibir erro no toast se a exclusão em lote falhar na API', async () => {
+        await renderAndLoad();
+        await waitFor(() => screen.getByText('Jogador 1'));
+
+        fireEvent.click(screen.getByLabelText('Selecionar Jogador 1'));
+
+        (globalThis.fetch as Mock).mockResolvedValueOnce({ ok: false, json: async () => ({}) });
+        confirmSpy.mockReturnValue(true);
+
+        fireEvent.click(screen.getByTitle('Excluir selecionados'));
+        await act(async () => { vi.advanceTimersByTime(550); });
+
+        expect(toast.error).toHaveBeenCalledWith('Erro ao excluir participantes.');
+    });
+
+    it('Não deve excluir em lote se a confirmação for cancelada', async () => {
+        await renderAndLoad();
+        await waitFor(() => screen.getByText('Jogador 1'));
+
+        fireEvent.click(screen.getByLabelText('Selecionar Jogador 1'));
+
+        (globalThis.fetch as Mock).mockClear();
+        confirmSpy.mockReturnValue(false);
+
+        fireEvent.click(screen.getByTitle('Excluir selecionados'));
+
+        expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it('Deve desabilitar a seleção e o botão em lote sem permissão', async () => {
+        setupSession(false);
+        await renderAndLoad();
+        await waitFor(() => screen.getByText('Jogador 1'));
+
+        expect(screen.getByLabelText('Selecionar Jogador 1')).toBeDisabled();
+        expect(screen.getAllByLabelText('Selecionar todos')[0]).toBeDisabled();
     });
 
     it('Não deve tentar excluir se o botão estiver desabilitado (Permissão Negada)', async () => {

@@ -101,6 +101,45 @@ describe('Participante Service', () => {
         });
     });
 
+    // --- DELETAR VÁRIOS PARTICIPANTES ---
+    describe('deletarParticipantes', () => {
+        it('Sucesso: Deve deletar todos os IDs informados', async () => {
+            // ARRANGE
+            prismaMock.ranking.deleteMany.mockResolvedValue({ count: 3 } as any);
+
+            // ACT
+            const resultado = await ParticipanteService.deletarParticipantes([1, 2, 3]);
+
+            // ASSERT
+            expect(prismaMock.ranking.deleteMany).toHaveBeenCalledWith({
+                where: { codRanking: { in: [1, 2, 3] } }
+            });
+            expect(resultado.count).toBe(3);
+        });
+    });
+
+    // --- DELETAR PELO FILTRO ---
+    describe('deletarParticipantesPorFiltro', () => {
+        it('Sucesso: Deve apagar usando os mesmos filtros da listagem', async () => {
+            prismaMock.ranking.deleteMany.mockResolvedValue({ count: 12 } as any);
+
+            const resultado = await ParticipanteService.deletarParticipantesPorFiltro('Jog', 'CURIOSO');
+
+            expect(prismaMock.ranking.deleteMany).toHaveBeenCalledWith({
+                where: { usuario: { contains: 'Jog' }, nivel: 'CURIOSO' }
+            });
+            expect(resultado.count).toBe(12);
+        });
+
+        it('Sucesso: Sem filtros deve apagar todos os participantes', async () => {
+            prismaMock.ranking.deleteMany.mockResolvedValue({ count: 300 } as any);
+
+            await ParticipanteService.deletarParticipantesPorFiltro(undefined, 'TODOS');
+
+            expect(prismaMock.ranking.deleteMany).toHaveBeenCalledWith({ where: {} });
+        });
+    });
+
     // --- ATUALIZAR PARTICIPANTE ---
     describe('atualizarParticipante', () => {
         it('Sucesso: Deve atualizar o nome do usuário', async () => {

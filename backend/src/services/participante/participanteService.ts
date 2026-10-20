@@ -8,10 +8,9 @@ interface ResultadoPaginado {
     totalPaginas: number;
 }
 
-export const listarParticipantes = async (page: number = 1, limit: number = 10, busca?: string, nivel?: string): Promise<ResultadoPaginado> => {
-    const skip = (page - 1) * limit;
-
-    // Inicializa o objeto where
+// Monta o filtro usado tanto na listagem quanto na exclusão em lote, para que
+// "selecionar todos" apague exatamente o que está sendo exibido.
+const montarFiltro = (busca?: string, nivel?: string): Prisma.rankingWhereInput => {
     const where: Prisma.rankingWhereInput = {};
 
     // 1. Filtro de Busca (Texto)
@@ -25,6 +24,14 @@ export const listarParticipantes = async (page: number = 1, limit: number = 10, 
     if (nivel && nivel in ranking_nivel) {
         where.nivel = nivel as ranking_nivel;
     }
+
+    return where;
+};
+
+export const listarParticipantes = async (page: number = 1, limit: number = 10, busca?: string, nivel?: string): Promise<ResultadoPaginado> => {
+    const skip = (page - 1) * limit;
+
+    const where = montarFiltro(busca, nivel);
 
     const [total, participantes] = await prisma.$transaction([
         prisma.ranking.count({ where }),
@@ -53,4 +60,12 @@ export const atualizarParticipante = async (codRanking: number, novoNome: string
         where: { codRanking },
         data: { usuario: novoNome }
     });
+};
+
+export const deletarParticipantes = async (codRankings: number[]) => {
+    return await prisma.ranking.deleteMany({ where: { codRanking: { in: codRankings } } });
+};
+
+export const deletarParticipantesPorFiltro = async (busca?: string, nivel?: string) => {
+    return await prisma.ranking.deleteMany({ where: montarFiltro(busca, nivel) });
 };
