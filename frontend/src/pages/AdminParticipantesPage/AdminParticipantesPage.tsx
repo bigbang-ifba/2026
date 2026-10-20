@@ -37,6 +37,12 @@ const AdminParticipantesPage: React.FC = () => {
     const [editingUser, setEditingUser] = useState<Participante | null>(null);
     const [podeExcluir, setPodeExcluir] = useState(false);
 
+    // IDs marcados nos checkboxes para a exclusão em lote
+    const [selecionados, setSelecionados] = useState<number[]>([]);
+    // Quando o admin pede para marcar todos os participantes do filtro, e não só a página
+    const [selecionouTodoFiltro, setSelecionouTodoFiltro] = useState(false);
+    const [total, setTotal] = useState(0);
+
     useEffect(() => {
         carregarPermissoes();
     }, []);
@@ -79,6 +85,10 @@ const AdminParticipantesPage: React.FC = () => {
                 const dados: RespostaAPI = await res.json();
                 setParticipantes(dados.data);
                 setTotalPaginas(dados.totalPaginas);
+                setTotal(dados.total);
+                // A seleção vale só para o que está na tela
+                setSelecionados([]);
+                setSelecionouTodoFiltro(false);
             } else {
                 toast.error("Erro ao carregar lista.");
             }
@@ -101,6 +111,63 @@ const AdminParticipantesPage: React.FC = () => {
             toast.success("Participante excluído!");
             // Recarrega usando os filtros atuais
             carregarParticipantes(paginaAtual, busca, nivelFiltro);
+        } catch (error) {
+            toast.error('Erro ao excluir.');
+        }
+    };
+
+    const paginaInteiraSelecionada = participantes.length > 0 && selecionados.length === participantes.length;
+    const todosSelecionados = selecionouTodoFiltro || paginaInteiraSelecionada;
+    // Quantos serão realmente excluídos ao confirmar
+    const qtdSelecionada = selecionouTodoFiltro ? total : selecionados.length;
+    // Só faz sentido oferecer o filtro inteiro se houver mais do que a página atual
+    const podeSelecionarTodoFiltro = paginaInteiraSelecionada && !selecionouTodoFiltro && total > participantes.length;
+
+    const alternarSelecao = (codRanking: number) => {
+        setSelecionouTodoFiltro(false);
+        setSelecionados(atuais =>
+            atuais.includes(codRanking)
+                ? atuais.filter(id => id !== codRanking)
+                : [...atuais, codRanking]
+        );
+    };
+
+    const alternarSelecionarTodos = () => {
+        setSelecionouTodoFiltro(false);
+        setSelecionados(todosSelecionados ? [] : participantes.map(user => user.codRanking));
+    };
+
+    const handleDeleteSelecionados = async () => {
+        if (qtdSelecionada === 0) return;
+        if (!window.confirm(`Tem certeza que deseja excluir ${qtdSelecionada} participante(s)?`)) return;
+        try {
+            const token = sessionStorage.getItem('token');
+            // Com o filtro inteiro marcado mandamos os filtros, e não os IDs,
+            // para a API apagar tudo de uma vez.
+            const corpo = selecionouTodoFiltro
+                ? { todos: true, busca, nivel: nivelFiltro }
+                : { ids: selecionados };
+
+            const res = await fetch(`${BASE_URL}/api/participantes`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(corpo)
+            });
+
+            if (res.ok) {
+                toast.success(`${qtdSelecionada} participante(s) excluído(s)!`);
+                // Volta para a primeira página: a atual pode nem existir mais
+                if (paginaAtual === 1) {
+                    carregarParticipantes(1, busca, nivelFiltro);
+                } else {
+                    setPaginaAtual(1);
+                }
+            } else {
+                toast.error("Erro ao excluir participantes.");
+            }
         } catch (error) {
             toast.error('Erro ao excluir.');
         }
@@ -244,10 +311,75 @@ const AdminParticipantesPage: React.FC = () => {
                 <div className="text-center text-white">Carregando...</div>
             ) : (
                 <>
+                    {/* --- AÇÕES EM LOTE --- */}
+                    <div className="mb-3 d-flex flex-wrap align-items-center gap-3">
+                        <div className="form-check d-flex align-items-center mb-0">
+                            <input
+                                className="form-check-input mt-0"
+                                type="checkbox"
+                                id="checkSelecionarTodos"
+                                checked={todosSelecionados}
+                                onChange={alternarSelecionarTodos}
+                                disabled={!podeExcluir || participantes.length === 0}
+                                style={{ cursor: 'pointer' }}
+                            />
+                            <label className="form-check-label text-white ms-2 mb-0" htmlFor="checkSelecionarTodos" style={{ cursor: 'pointer' }}>
+                                Selecionar todos
+                            </label>
+                        </div>
+
+                        <button
+                            className="btn btn-sm btn-danger"
+                            onClick={handleDeleteSelecionados}
+                            disabled={!podeExcluir || qtdSelecionada === 0}
+                            title={!podeExcluir ? "Sem permissão para excluir" : "Excluir selecionados"}
+                        >
+                            🗑️ Excluir selecionados ({qtdSelecionada})
+                        </button>
+                    </div>
+
+                    {/* --- SELEÇÃO ALÉM DA PÁGINA ATUAL --- */}
+                    {podeExcluir && (podeSelecionarTodoFiltro || selecionouTodoFiltro) && (
+                        <div className="alert alert-dark d-flex flex-wrap align-items-center gap-2 py-2">
+                            {selecionouTodoFiltro ? (
+                                <>
+                                    <span>Todos os <strong>{total}</strong> participantes do filtro estão selecionados.</span>
+                                    <button
+                                        className="btn btn-sm btn-link p-0"
+                                        onClick={() => setSelecionouTodoFiltro(false)}
+                                    >
+                                        Selecionar apenas esta página
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Os <strong>{participantes.length}</strong> desta página estão selecionados.</span>
+                                    <button
+                                        className="btn btn-sm btn-link p-0"
+                                        onClick={() => setSelecionouTodoFiltro(true)}
+                                    >
+                                        Selecionar todos os {total} participantes do filtro
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
+
                     <div className="table-responsive">
                         <table className="table table-dark table-hover rounded overflow-hidden align-middle">
                             <thead>
                             <tr>
+                                <th style={{ width: '1%' }}>
+                                    <input
+                                        className="form-check-input mt-0"
+                                        type="checkbox"
+                                        checked={todosSelecionados}
+                                        onChange={alternarSelecionarTodos}
+                                        disabled={!podeExcluir || participantes.length === 0}
+                                        aria-label="Selecionar todos"
+                                        style={{ cursor: 'pointer' }}
+                                    />
+                                </th>
                                 <th>ID</th>
                                 <th>Nome do Jogador</th>
                                 <th>Pontuação</th>
@@ -258,6 +390,17 @@ const AdminParticipantesPage: React.FC = () => {
                             <tbody>
                             {participantes.map(user => (
                                 <tr key={user.codRanking}>
+                                    <td>
+                                        <input
+                                            className="form-check-input mt-0"
+                                            type="checkbox"
+                                            checked={selecionouTodoFiltro || selecionados.includes(user.codRanking)}
+                                            onChange={() => alternarSelecao(user.codRanking)}
+                                            disabled={!podeExcluir}
+                                            aria-label={`Selecionar ${user.usuario}`}
+                                            style={{ cursor: 'pointer' }}
+                                        />
+                                    </td>
                                     <td className="text-secondary">#{user.codRanking}</td>
                                     <td style={{ color: '#15d2a3', fontWeight: 'bold' }}>
                                         {user.usuario}
@@ -292,7 +435,7 @@ const AdminParticipantesPage: React.FC = () => {
 
                             {participantes.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-4 text-muted">
+                                    <td colSpan={6} className="text-center py-4 text-muted">
                                         Nenhum participante encontrado.
                                     </td>
                                 </tr>

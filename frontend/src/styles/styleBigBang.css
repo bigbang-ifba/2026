@@ -309,8 +309,10 @@ body {
 body.niveis-page-body {
     padding: 0 !important;
     margin: 0 !important;
-    /* Evita que a página "pule" com scrollbars desnecessários */
-    overflow: hidden; 
+    /* Trava só o scroll lateral. O vertical precisa funcionar no celular,
+       onde o layout do jogo é empilhado e fica mais alto que a tela. */
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 /* Se você usa uma div ".barra" para envolver suas páginas... */

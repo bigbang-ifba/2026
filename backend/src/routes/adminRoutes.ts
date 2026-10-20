@@ -32,6 +32,7 @@ router.delete('/elementos/:id', ElementoController.deletar);
 
 // --- Participantes ---
 router.get('/participantes', ParticipanteController.listar);
+router.delete('/participantes', ParticipanteController.deletarVarios);
 router.delete('/participantes/:id', ParticipanteController.deletar);
 router.put('/participantes/:id', ParticipanteController.atualizar);
 

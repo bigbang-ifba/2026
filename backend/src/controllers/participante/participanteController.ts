@@ -27,6 +27,33 @@ export const deletar = async (req: Request, res: Response) => {
     }
 };
 
+export const deletarVarios = async (req: Request, res: Response) => {
+    try {
+        const { ids, todos, busca, nivel } = req.body;
+
+        // "Selecionar todos" do filtro: apaga tudo que a listagem traria,
+        // sem precisar enviar milhares de IDs.
+        if (todos === true) {
+            const resultado = await ParticipanteService.deletarParticipantesPorFiltro(busca, nivel);
+            return res.json({ excluidos: resultado.count });
+        }
+
+        // Aceita apenas uma lista de IDs numéricos, para não apagar nada por engano.
+        const codRankings = Array.isArray(ids)
+            ? ids.map(Number).filter(id => Number.isInteger(id) && id > 0)
+            : [];
+
+        if (codRankings.length === 0) {
+            return res.status(400).json({ error: 'Nenhum participante selecionado' });
+        }
+
+        const resultado = await ParticipanteService.deletarParticipantes(codRankings);
+        return res.json({ excluidos: resultado.count });
+    } catch (error) {
+        return res.status(500).json({ error: 'Erro ao deletar participantes' });
+    }
+};
+
 export const atualizar = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;

@@ -47,8 +47,9 @@ body.niveis-page-body #root {
   max-width: none;
   padding: 0;
   margin: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  /* min-height (e não height) para o conteúdo poder crescer no celular */
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;

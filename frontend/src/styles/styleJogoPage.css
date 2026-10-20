@@ -651,8 +651,10 @@
     flex-direction: column; /* Empilha verticalmente */
     height: auto;           /* Altura cresce conforme o conteúdo */
     min-height: 100dvh;     /* Garante tela cheia no mínimo */
-    overflow-y: auto;       /* Habilita scroll da página inteira */
-    overflow-x: hidden;     /* Trava scroll lateral da PÁGINA (mas permite na tabela) */
+    /* Quem rola é a própria página: um container com overflow próprio
+       criava um scroll aninhado que não respondia ao toque. */
+    overflow-y: visible;
+    overflow-x: clip;       /* Trava scroll lateral da PÁGINA (mas permite na tabela) */
   }
 
   /* 2. Remove as travas de altura das colunas antigas */
@@ -729,10 +731,15 @@
     height: auto;
   }
 
-  /* Garante que o container de dicas não cubra a tabela */
+  /* A caixa de dicas fica DENTRO do mesmo scroll horizontal da tabela.
+     Sem o sticky ela saía da tela junto com a tabela ao arrastar de lado
+     (mesma solução já usada no .question-title). */
   .dicas-container-central {
     margin-top: 20px;
     max-width: 100%;
+    position: sticky;
+    left: 0;
+    z-index: 5;
   }
 
   .status-message-box {

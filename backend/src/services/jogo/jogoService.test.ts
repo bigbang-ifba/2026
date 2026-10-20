@@ -91,6 +91,35 @@ describe('Jogo Service', () => {
             }
         });
 
+        it('Sucesso: A ordem das opções não deve seguir a ordem das rodadas', async () => {
+            // ARRANGE
+            const mockQuestoes = Array.from({ length: 15 }, (_, i) => criarQuestaoMock(i + 1));
+            prismaMock.questao.findMany.mockResolvedValue(mockQuestoes as any);
+            prismaMock.dicas.findMany.mockResolvedValue([]);
+
+            // ACT: várias chamadas, pois o embaralhamento é aleatório
+            const resultados = [];
+            for (let i = 0; i < 5; i++) {
+                resultados.push(await JogoService.getQuestaoComDicas(1));
+            }
+
+            // ASSERT
+            for (const result of resultados) {
+                // As opções continuam sendo exatamente os elementos das rodadas
+                expect([...result.listaOpcoes.map(o => o.nome)].sort())
+                    .toEqual([...result.rodadas.map(r => r.nomeElemento)].sort());
+            }
+
+            // Mas a posição na lista não pode coincidir com a ordem das rodadas,
+            // senão bastaria clicar na primeira opção habilitada para acertar sempre.
+            const algumaOrdemDiferente = resultados.some(result =>
+                result.listaOpcoes.some((opcao, index) =>
+                    opcao.nome !== result.rodadas[index]!.nomeElemento
+                )
+            );
+            expect(algumaOrdemDiferente).toBe(true);
+        });
+
         it('Sucesso: Deve tratar símbolo nulo como "?"', async () => {
             const questaoSemSimbolo = { ...criarQuestaoMock(1), simbolo: null };
             prismaMock.questao.findMany.mockResolvedValue([questaoSemSimbolo] as any);

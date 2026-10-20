@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Serviço do Banco de Dados
   db:
@@ -36,7 +34,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ADMIN_LOGIN: ${ADMIN_LOGIN}
-      CORS_ORIGIN: "http://localhost:5173"
+      CORS_ORIGIN: ${CORS_ORIGIN}
       PORT: ${PORT}
     volumes:
       - ./backend/uploads:/app/uploads
@@ -51,6 +49,10 @@ services:
       - backend
     environment:
       VITE_API_URL: ${VITE_API_URL}
+      # Hosts aceitos pelo servidor do Vite (o domínio com e sem "www." é
+      # liberado automaticamente a partir do que for informado aqui).
+      VITE_ALLOWED_HOSTS: ${VITE_ALLOWED_HOSTS:-}
+      VITE_ALLOW_ALL_HOSTS: ${VITE_ALLOW_ALL_HOSTS:-}
 
 volumes:
   mysql_data:

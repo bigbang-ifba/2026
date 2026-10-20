@@ -3,10 +3,12 @@ import { type Request, type Response } from 'express';
 import * as ParticipanteController from './participanteController.js';
 import * as ParticipanteService from '../../services/participante/participanteService.js';
 
-const { mockListar, mockDeletar, mockAtualizar } = vi.hoisted(() => {
+const { mockListar, mockDeletar, mockDeletarVarios, mockDeletarPorFiltro, mockAtualizar } = vi.hoisted(() => {
     return {
         mockListar: vi.fn(),
         mockDeletar: vi.fn(),
+        mockDeletarVarios: vi.fn(),
+        mockDeletarPorFiltro: vi.fn(),
         mockAtualizar: vi.fn(),
     };
 });
@@ -14,6 +16,8 @@ const { mockListar, mockDeletar, mockAtualizar } = vi.hoisted(() => {
 vi.mock('../../services/participante/participanteService.js', () => ({
     listarParticipantes: mockListar,
     deletarParticipante: mockDeletar,
+    deletarParticipantes: mockDeletarVarios,
+    deletarParticipantesPorFiltro: mockDeletarPorFiltro,
     atualizarParticipante: mockAtualizar,
 }));
 
@@ -54,7 +58,7 @@ describe('Participante Controller', () => {
 
             await ParticipanteController.listar(req as Request, res as Response);
 
-            expect(mockListar).toHaveBeenCalledWith(1, 10);
+            expect(mockListar).toHaveBeenCalledWith(1, 10, undefined, undefined);
             expect(res.json).toHaveBeenCalledWith(mockResultado);
         });
 
@@ -64,7 +68,7 @@ describe('Participante Controller', () => {
 
             await ParticipanteController.listar(req as Request, res as Response);
 
-            expect(mockListar).toHaveBeenCalledWith(2, 20);
+            expect(mockListar).toHaveBeenCalledWith(2, 20, undefined, undefined);
         });
 
         it('Erro: Deve retornar 500 se o service falhar', async () => {
@@ -101,6 +105,59 @@ describe('Participante Controller', () => {
         });
     });
 
+    // --- TESTES: DELETAR VÁRIOS ---
+    describe('deletarVarios', () => {
+        it('Sucesso: Deve deletar a lista de IDs e retornar o total excluído', async () => {
+            req.body = { ids: [1, 2, 3] };
+            mockDeletarVarios.mockResolvedValue({ count: 3 });
+
+            await ParticipanteController.deletarVarios(req as Request, res as Response);
+
+            expect(mockDeletarVarios).toHaveBeenCalledWith([1, 2, 3]);
+            expect(jsonMock).toHaveBeenCalledWith({ excluidos: 3 });
+        });
+
+        it('Sucesso: Deve ignorar IDs inválidos da lista', async () => {
+            req.body = { ids: ['5', 'abc', null, 7] };
+            mockDeletarVarios.mockResolvedValue({ count: 2 });
+
+            await ParticipanteController.deletarVarios(req as Request, res as Response);
+
+            expect(mockDeletarVarios).toHaveBeenCalledWith([5, 7]);
+        });
+
+        it('Sucesso: Deve excluir pelo filtro quando "todos" for enviado', async () => {
+            req.body = { todos: true, busca: 'Jog', nivel: 'CURIOSO' };
+            mockDeletarPorFiltro.mockResolvedValue({ count: 42 });
+
+            await ParticipanteController.deletarVarios(req as Request, res as Response);
+
+            expect(mockDeletarPorFiltro).toHaveBeenCalledWith('Jog', 'CURIOSO');
+            expect(mockDeletarVarios).not.toHaveBeenCalled();
+            expect(jsonMock).toHaveBeenCalledWith({ excluidos: 42 });
+        });
+
+        it('Erro: Deve retornar 400 se nenhum ID válido for enviado', async () => {
+            req.body = {};
+
+            await ParticipanteController.deletarVarios(req as Request, res as Response);
+
+            expect(mockDeletarVarios).not.toHaveBeenCalled();
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({ error: 'Nenhum participante selecionado' });
+        });
+
+        it('Erro: Deve retornar 500 se o service falhar', async () => {
+            req.body = { ids: [1] };
+            mockDeletarVarios.mockRejectedValue(new Error('Falha'));
+
+            await ParticipanteController.deletarVarios(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({ error: 'Erro ao deletar participantes' });
+        });
+    });
+
     // --- TESTES: ATUALIZAR ---
     describe('atualizar', () => {
         it('Sucesso: Deve atualizar nome e retornar objeto atualizado', async () => {
@@ -126,4 +183,4 @@ describe('Participante Controller', () => {
             expect(jsonMock).toHaveBeenCalledWith({ error: 'Erro ao atualizar participante' });
         });
     });
-});
+})

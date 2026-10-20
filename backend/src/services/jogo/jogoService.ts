@@ -12,6 +12,18 @@ export const getNiveis = async () => {
 };
 
 
+/**
+ * Embaralha uma CÓPIA do array (Fisher-Yates), sem alterar o original.
+ */
+const embaralhar = <T,>(itens: T[]): T[] => {
+    const copia = [...itens];
+    for (let i = copia.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copia[i], copia[j]] = [copia[j]!, copia[i]!];
+    }
+    return copia;
+};
+
 export const getQuestaoComDicas = async (codNivel: number) => {
 
     // 1. Busca questões do nível
@@ -48,18 +60,17 @@ export const getQuestaoComDicas = async (codNivel: number) => {
         }
     }
 
-    // 4. Embaralhar as QUESTÕES (Objeto completo)
-    for (let i = questoesValidas.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        // Adicione o '!' no lado direito
-        [questoesValidas[i], questoesValidas[j]] = [questoesValidas[j]!, questoesValidas[i]!];
-    }
+    // 4. Embaralha as QUESTÕES (objeto completo) e pega as 12 primeiras.
+    // A ordem deste array é a ordem das RODADAS.
+    const questoesSelecionadas = embaralhar(questoesValidas).slice(0, 12);
 
-    // 5. Seleciona as primeiras 12 questões embaralhadas
-    const questoesSelecionadas = questoesValidas.slice(0, 12);
+    // 5. Embaralha OUTRA VEZ, só para montar a lista de opções.
+    // Sem este segundo embaralhamento a Nª opção da lista era sempre a resposta
+    // da Nª rodada: bastava clicar na primeira opção ainda habilitada para acertar.
+    const opcoesEmbaralhadas = embaralhar(questoesSelecionadas);
 
     // 6. Monta o objeto para o Front-end
-    const listaOpcoesLimitada = questoesSelecionadas.map((q: questao) => {
+    const listaOpcoesLimitada = opcoesEmbaralhadas.map((q: questao) => {
         return {
             nome: q.resposta!,
 

@@ -1,7 +1,17 @@
 import { PrismaClient, nivel_nome, ranking_nivel } from '@prisma/client';
 import bcrypt from "bcryptjs";
+import { TABELA_PERIODICA_COMPLETA } from '../src/constants/TabelaPeriodica.js';
 
 const prisma = new PrismaClient();
+
+const normalizeString = (str: string) =>
+    str.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+const simboloDoElemento = (nome: string) => {
+    const elemento = TABELA_PERIODICA_COMPLETA.find(e => normalizeString(e.n) === nome);
+    if (!elemento) throw new Error(`Elemento '${nome}' não encontrado na Tabela Periódica`);
+    return normalizeString(elemento.s);
+};
 
 async function main() {
     console.log('Iniciando seed completo (Recuperação de Backup)...');
@@ -77,6 +87,10 @@ async function main() {
     ];
 
     for (const q of questoes) {
+        // Símbolo real da Tabela Periódica, no mesmo formato normalizado usado pelo painel admin
+        const simbolo = simboloDoElemento(q.resposta);
+        const simboloAntigo = q.resposta.substring(0, 2).toUpperCase();
+
         await prisma.questao.upsert({
             where: { codQuestao: q.codQuestao },
             update: {},
@@ -84,10 +98,15 @@ async function main() {
                 codQuestao: q.codQuestao,
                 resposta: q.resposta,
                 codNivel: q.codNivel,
-                // Gerando o símbolo automaticamente (primeiras 2 letras) já que o SQL não tinha
-                simbolo: q.resposta ? q.resposta.substring(0, 2).toUpperCase() : '??',
+                simbolo,
                 imagemUrl: null
             },
+        });
+
+        // Corrige bancos populados por versões antigas do seed (símbolo = 2 primeiras letras)
+        await prisma.questao.updateMany({
+            where: { codQuestao: q.codQuestao, resposta: q.resposta, simbolo: simboloAntigo },
+            data: { simbolo },
         });
     }
 
